@@ -154,6 +154,10 @@ export default function RankingForm({ tickets }: { tickets: Ticket[] }) {
         <p className="text-slate font-body text-[17px] leading-relaxed max-w-lg mx-auto">
           Drag from most likely <span className="font-bold text-primary">(1)</span> to least likely <span className="font-bold text-primary">({config.ticketCount})</span> to win. You can only submit once.
         </p>
+        <p className="text-xs text-slate font-label uppercase tracking-widest mt-3 flex items-center justify-center gap-1">
+          <span className="material-symbols-outlined text-xs">shield</span>
+          Your ranking is anonymous
+        </p>
       </div>
 
       {step === "email" && (

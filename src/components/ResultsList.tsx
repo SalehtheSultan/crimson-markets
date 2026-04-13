@@ -2,7 +2,6 @@
 import { useEffect, useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 import { config } from "@/lib/config";
-import Link from "next/link";
 
 type Row = { id: number; name: string; avg_rank: number; vote_count: number };
 
@@ -44,6 +43,7 @@ export default function ResultsList({
             <div className="flex items-center gap-3 mb-2">
               <span className="inline-block w-2.5 h-2.5 bg-primary rounded-full live-pulse"></span>
               <span className="font-label text-sm uppercase tracking-wider text-primary font-bold">Live Results</span>
+              <span className="font-label text-[10px] uppercase tracking-widest text-slate bg-surface-container px-2 py-0.5 rounded-full">Anonymous</span>
             </div>
             <h1 className="text-5xl md:text-6xl font-headline font-bold text-charcoal tracking-tight leading-none mb-4">
               {config.electionTitle}
@@ -107,17 +107,13 @@ export default function ResultsList({
         })}
       </div>
 
-      {/* Info Section */}
+      {/* About Section */}
       <section className="mt-16 grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="bg-surface-container-low rounded-[8px] p-8">
           <h4 className="font-headline font-bold text-2xl mb-4 text-primary">About the Markets</h4>
-          <p className="text-slate leading-relaxed mb-4">
-            Crimson Markets uses real-time student sentiment analysis and historical voting data to predict election outcomes. These rankings are weighted by student preference data and verified HUA participation.
+          <p className="text-slate leading-relaxed">
+            Crimson Markets aggregates real-time student predictions to forecast HUA election outcomes. All rankings are anonymous &mdash; only aggregate results are displayed publicly. Your email is used solely to verify your Harvard affiliation and prevent duplicate submissions.
           </p>
-          <Link href="#" className="text-primary font-bold hover:underline inline-flex items-center gap-1">
-            Read the Methodology
-            <span className="material-symbols-outlined text-sm">arrow_forward</span>
-          </Link>
         </div>
         <div className="relative rounded-[8px] overflow-hidden min-h-[200px]">
           <img
@@ -133,6 +129,14 @@ export default function ResultsList({
           </div>
         </div>
       </section>
+
+      {/* Anonymous Notice */}
+      <div className="mt-8 mb-4 text-center">
+        <p className="text-xs text-slate font-label uppercase tracking-widest">
+          <span className="material-symbols-outlined text-xs align-middle mr-1">shield</span>
+          All predictions are anonymous &mdash; individual rankings are never shown publicly
+        </p>
+      </div>
     </div>
   );
 }
