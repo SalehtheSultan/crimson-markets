@@ -1,7 +1,16 @@
 import { supabaseAdmin } from "@/lib/supabase";
-import { NextResponse } from "next/server";
+import { rateLimit } from "@/lib/rate-limit";
+import { config } from "@/lib/config";
+import { NextRequest, NextResponse } from "next/server";
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  // Rate limit by IP: 5 submissions per 15 minutes
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  const rl = rateLimit(`rank:${ip}`, { maxRequests: 5, windowMs: 15 * 60 * 1000 });
+  if (!rl.success) {
+    return NextResponse.json({ error: "Too many requests. Try again later." }, { status: 429 });
+  }
+
   // Verify the Supabase auth session token
   const authHeader = req.headers.get("authorization");
   const token = authHeader?.replace("Bearer ", "");
@@ -17,22 +26,49 @@ export async function POST(req: Request) {
   const email = user.email.toLowerCase().trim();
 
   // Validate email domain
-  if (!email.endsWith("@college.harvard.edu")) {
-    return NextResponse.json({ error: "Must use a @college.harvard.edu email" }, { status: 403 });
+  if (!email.endsWith(`@${config.allowedEmailDomain}`)) {
+    return NextResponse.json({ error: `Must use a @${config.allowedEmailDomain} email` }, { status: 403 });
   }
 
-  const { rankings } = (await req.json()) as {
-    rankings: { ticketId: number; rank: number }[];
-  };
-
-  // Validate: must be exactly 7 entries, ranks 1..7 unique, ticketIds unique
-  if (!Array.isArray(rankings) || rankings.length !== 7) {
-    return NextResponse.json({ error: "Must rank all 7 tickets" }, { status: 400 });
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
-  const ranks = rankings.map((r) => r.rank).sort();
+
+  const { rankings } = body as { rankings: { ticketId: number; rank: number }[] };
+
+  // Validate rankings array
+  if (!Array.isArray(rankings) || rankings.length !== config.ticketCount) {
+    return NextResponse.json({ error: `Must rank all ${config.ticketCount} tickets` }, { status: 400 });
+  }
+
+  // Validate each entry is a safe integer
+  for (const r of rankings) {
+    if (
+      typeof r.ticketId !== "number" || !Number.isInteger(r.ticketId) || r.ticketId < 1 ||
+      typeof r.rank !== "number" || !Number.isInteger(r.rank) || r.rank < 1 || r.rank > config.ticketCount
+    ) {
+      return NextResponse.json({ error: "Invalid ranking data" }, { status: 400 });
+    }
+  }
+
+  // Validate uniqueness of ranks and ticket IDs
+  const ranks = rankings.map((r) => r.rank).sort((a, b) => a - b);
+  const expectedRanks = Array.from({ length: config.ticketCount }, (_, i) => i + 1);
   const ids = new Set(rankings.map((r) => r.ticketId));
-  if (ranks.join(",") !== "1,2,3,4,5,6,7" || ids.size !== 7) {
+  if (ranks.join(",") !== expectedRanks.join(",") || ids.size !== config.ticketCount) {
     return NextResponse.json({ error: "Invalid ranking" }, { status: 400 });
+  }
+
+  // Validate ticket IDs exist in database
+  const { data: validTickets } = await supabaseAdmin
+    .from("tickets")
+    .select("id")
+    .in("id", rankings.map((r) => r.ticketId));
+  if (!validTickets || validTickets.length !== config.ticketCount) {
+    return NextResponse.json({ error: "Invalid ticket IDs" }, { status: 400 });
   }
 
   // Reject if already ranked (one-shot)
@@ -50,7 +86,10 @@ export async function POST(req: Request) {
     rank: r.rank,
   }));
   const { error } = await supabaseAdmin.from("rankings").insert(rows);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("Rankings insert error:", error.message);
+    return NextResponse.json({ error: "Failed to save ranking. Please try again." }, { status: 500 });
+  }
 
   return NextResponse.json({ ok: true });
 }

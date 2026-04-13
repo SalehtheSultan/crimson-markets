@@ -9,6 +9,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { supabaseBrowser } from "@/lib/supabase-browser";
+import { config } from "@/lib/config";
 
 type Ticket = { id: number; name: string; platform_url: string | null };
 
@@ -31,6 +32,8 @@ function Row({ ticket, index }: { ticket: Ticket; index: number }) {
   );
 }
 
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
 export default function RankingForm({ tickets }: { tickets: Ticket[] }) {
   const [items, setItems] = useState(tickets);
   const [email, setEmail] = useState("");
@@ -44,6 +47,8 @@ export default function RankingForm({ tickets }: { tickets: Ticket[] }) {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
+  const domain = config.allowedEmailDomain;
+
   function onDragEnd(e: DragEndEvent) {
     const { active, over } = e;
     if (!over || active.id === over.id) return;
@@ -54,13 +59,24 @@ export default function RankingForm({ tickets }: { tickets: Ticket[] }) {
 
   async function sendCode() {
     setError("");
-    if (!email.toLowerCase().trim().endsWith("@college.harvard.edu")) {
-      setError("Please use your @college.harvard.edu email.");
+    const trimmed = email.toLowerCase().trim();
+
+    if (!EMAIL_REGEX.test(trimmed)) {
+      setError("Please enter a valid email address.");
       return;
     }
+    if (!trimmed.endsWith(`@${domain}`)) {
+      setError(`Please use your @${domain} email.`);
+      return;
+    }
+    if (trimmed.length > 254) {
+      setError("Email address is too long.");
+      return;
+    }
+
     setLoading(true);
     const { error: otpError } = await supabaseBrowser.auth.signInWithOtp({
-      email: email.toLowerCase().trim(),
+      email: trimmed,
     });
     setLoading(false);
     if (otpError) {
@@ -72,10 +88,16 @@ export default function RankingForm({ tickets }: { tickets: Ticket[] }) {
 
   async function verifyCode() {
     setError("");
+    const code = otp.trim();
+    if (!/^\d{6}$/.test(code)) {
+      setError("Please enter a valid 6-digit code.");
+      return;
+    }
+
     setLoading(true);
     const { error: verifyError } = await supabaseBrowser.auth.verifyOtp({
       email: email.toLowerCase().trim(),
-      token: otp.trim(),
+      token: code,
       type: "email",
     });
     setLoading(false);
@@ -109,7 +131,6 @@ export default function RankingForm({ tickets }: { tickets: Ticket[] }) {
     });
 
     if (res.ok) {
-      localStorage.setItem("crimson-markets-email", email);
       router.push("/");
     } else {
       const data = await res.json();
@@ -122,7 +143,7 @@ export default function RankingForm({ tickets }: { tickets: Ticket[] }) {
     <div className="max-w-md mx-auto p-4 pb-32">
       <h1 className="text-2xl font-bold mb-1">Rank the HUA tickets</h1>
       <p className="text-neutral-600 text-sm mb-6">
-        Drag from most likely (1) to least likely (7) to win. You can only submit once.
+        Drag from most likely (1) to least likely ({config.ticketCount}) to win. You can only submit once.
       </p>
 
       {step === "email" && (
@@ -133,7 +154,7 @@ export default function RankingForm({ tickets }: { tickets: Ticket[] }) {
           <input
             id="email"
             type="email"
-            placeholder="you@college.harvard.edu"
+            placeholder={`you@${domain}`}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && sendCode()}

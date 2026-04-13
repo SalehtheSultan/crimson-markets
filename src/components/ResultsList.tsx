@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase-browser";
+import { config } from "@/lib/config";
 import Link from "next/link";
 
 type Row = { id: number; name: string; avg_rank: number; vote_count: number };
@@ -40,9 +41,9 @@ export default function ResultsList({
         <h1 className="text-xl font-bold">Crimson Markets</h1>
         <div className="text-sm text-neutral-600">{total} students</div>
       </header>
-      <p className="text-neutral-600 text-sm mb-1">HUA Co-Presidents 2026</p>
+      <p className="text-neutral-600 text-sm mb-1">{config.electionTitle}</p>
       <div className="flex items-center justify-between mb-6">
-        <p className="text-xs text-neutral-500">Voting closes Fri 4/17, 11:59pm</p>
+        <p className="text-xs text-neutral-500">Voting closes {config.votingDeadline}</p>
         <Link href="/rank" className="text-xs text-red-700 font-medium hover:underline">
           Submit your ranking
         </Link>
