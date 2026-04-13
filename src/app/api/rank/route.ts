@@ -2,17 +2,28 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
-  const { email, rankings } = (await req.json()) as {
-    email: string;
-    rankings: { ticketId: number; rank: number }[];
-  };
-
-  // Validate email domain
-  if (!email || !email.endsWith("@college.harvard.edu")) {
-    return NextResponse.json({ error: "Must use a @college.harvard.edu email" }, { status: 400 });
+  // Verify the Supabase auth session token
+  const authHeader = req.headers.get("authorization");
+  const token = authHeader?.replace("Bearer ", "");
+  if (!token) {
+    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  const normalizedEmail = email.toLowerCase().trim();
+  const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+  if (authError || !user?.email) {
+    return NextResponse.json({ error: "Invalid or expired session" }, { status: 401 });
+  }
+
+  const email = user.email.toLowerCase().trim();
+
+  // Validate email domain
+  if (!email.endsWith("@college.harvard.edu")) {
+    return NextResponse.json({ error: "Must use a @college.harvard.edu email" }, { status: 403 });
+  }
+
+  const { rankings } = (await req.json()) as {
+    rankings: { ticketId: number; rank: number }[];
+  };
 
   // Validate: must be exactly 7 entries, ranks 1..7 unique, ticketIds unique
   if (!Array.isArray(rankings) || rankings.length !== 7) {
@@ -28,13 +39,13 @@ export async function POST(req: Request) {
   const { count } = await supabaseAdmin
     .from("rankings")
     .select("*", { count: "exact", head: true })
-    .eq("email", normalizedEmail);
+    .eq("email", email);
   if ((count ?? 0) > 0) {
-    return NextResponse.json({ error: "This email has already submitted a ranking" }, { status: 409 });
+    return NextResponse.json({ error: "You have already submitted a ranking" }, { status: 409 });
   }
 
   const rows = rankings.map((r) => ({
-    email: normalizedEmail,
+    email,
     ticket_id: r.ticketId,
     rank: r.rank,
   }));

@@ -8,6 +8,7 @@ import {
   arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { supabaseBrowser } from "@/lib/supabase-browser";
 
 type Ticket = { id: number; name: string; platform_url: string | null };
 
@@ -33,7 +34,9 @@ function Row({ ticket, index }: { ticket: Ticket; index: number }) {
 export default function RankingForm({ tickets }: { tickets: Ticket[] }) {
   const [items, setItems] = useState(tickets);
   const [email, setEmail] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [step, setStep] = useState<"email" | "otp" | "rank">("email");
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
   const sensors = useSensors(
@@ -49,20 +52,60 @@ export default function RankingForm({ tickets }: { tickets: Ticket[] }) {
     setItems(arrayMove(items, oldIdx, newIdx));
   }
 
-  async function submit() {
+  async function sendCode() {
     setError("");
-
-    if (!email.endsWith("@college.harvard.edu")) {
+    if (!email.toLowerCase().trim().endsWith("@college.harvard.edu")) {
       setError("Please use your @college.harvard.edu email.");
       return;
     }
+    setLoading(true);
+    const { error: otpError } = await supabaseBrowser.auth.signInWithOtp({
+      email: email.toLowerCase().trim(),
+    });
+    setLoading(false);
+    if (otpError) {
+      setError(otpError.message);
+      return;
+    }
+    setStep("otp");
+  }
 
-    setSubmitting(true);
+  async function verifyCode() {
+    setError("");
+    setLoading(true);
+    const { error: verifyError } = await supabaseBrowser.auth.verifyOtp({
+      email: email.toLowerCase().trim(),
+      token: otp.trim(),
+      type: "email",
+    });
+    setLoading(false);
+    if (verifyError) {
+      setError("Invalid or expired code. Please try again.");
+      return;
+    }
+    setStep("rank");
+  }
+
+  async function submit() {
+    setError("");
+    setLoading(true);
+
+    const { data: { session } } = await supabaseBrowser.auth.getSession();
+    if (!session) {
+      setError("Session expired. Please verify your email again.");
+      setStep("email");
+      setLoading(false);
+      return;
+    }
+
     const rankings = items.map((t, i) => ({ ticketId: t.id, rank: i + 1 }));
     const res = await fetch("/api/rank", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, rankings }),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ rankings }),
     });
 
     if (res.ok) {
@@ -71,7 +114,7 @@ export default function RankingForm({ tickets }: { tickets: Ticket[] }) {
     } else {
       const data = await res.json();
       setError(data.error || "Submission failed.");
-      setSubmitting(false);
+      setLoading(false);
     }
   }
 
@@ -82,43 +125,91 @@ export default function RankingForm({ tickets }: { tickets: Ticket[] }) {
         Drag from most likely (1) to least likely (7) to win. You can only submit once.
       </p>
 
-      <div className="mb-6">
-        <label htmlFor="email" className="block text-sm font-medium text-neutral-700 mb-1">
-          Harvard Email
-        </label>
-        <input
-          id="email"
-          type="email"
-          placeholder="you@college.harvard.edu"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="w-full border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-red-700"
-        />
-      </div>
-
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-        <SortableContext items={items.map((i) => i.id)} strategy={verticalListSortingStrategy}>
-          <div className="space-y-2">
-            {items.map((t, i) => (
-              <Row key={t.id} ticket={t} index={i} />
-            ))}
-          </div>
-        </SortableContext>
-      </DndContext>
-
-      {error && (
-        <p className="mt-4 text-sm text-red-600 font-medium">{error}</p>
+      {step === "email" && (
+        <div className="space-y-3">
+          <label htmlFor="email" className="block text-sm font-medium text-neutral-700">
+            Harvard Email
+          </label>
+          <input
+            id="email"
+            type="email"
+            placeholder="you@college.harvard.edu"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && sendCode()}
+            className="w-full border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-red-700"
+          />
+          {error && <p className="text-sm text-red-600 font-medium">{error}</p>}
+          <button
+            onClick={sendCode}
+            disabled={loading}
+            className="w-full bg-red-700 text-white font-semibold py-3 rounded-xl shadow-lg disabled:opacity-50"
+          >
+            {loading ? "Sending\u2026" : "Send Verification Code"}
+          </button>
+        </div>
       )}
 
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-neutral-50 to-transparent">
-        <button
-          onClick={submit}
-          disabled={submitting}
-          className="w-full max-w-md mx-auto block bg-red-700 text-white font-semibold py-4 rounded-xl shadow-lg disabled:opacity-50"
-        >
-          {submitting ? "Submitting\u2026" : "Submit Ranking"}
-        </button>
-      </div>
+      {step === "otp" && (
+        <div className="space-y-3">
+          <p className="text-sm text-neutral-600">
+            We sent a 6-digit code to <strong>{email}</strong>. Check your inbox.
+          </p>
+          <input
+            type="text"
+            inputMode="numeric"
+            maxLength={6}
+            placeholder="Enter 6-digit code"
+            value={otp}
+            onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+            onKeyDown={(e) => e.key === "Enter" && verifyCode()}
+            className="w-full border rounded-xl px-4 py-3 text-sm text-center tracking-widest font-mono focus:outline-none focus:ring-2 focus:ring-red-700"
+          />
+          {error && <p className="text-sm text-red-600 font-medium">{error}</p>}
+          <button
+            onClick={verifyCode}
+            disabled={loading || otp.length !== 6}
+            className="w-full bg-red-700 text-white font-semibold py-3 rounded-xl shadow-lg disabled:opacity-50"
+          >
+            {loading ? "Verifying\u2026" : "Verify Code"}
+          </button>
+          <button
+            onClick={() => { setStep("email"); setOtp(""); setError(""); }}
+            className="w-full text-sm text-neutral-500 hover:text-neutral-700"
+          >
+            Use a different email
+          </button>
+        </div>
+      )}
+
+      {step === "rank" && (
+        <>
+          <p className="text-sm text-green-700 font-medium mb-4">
+            Verified as {email}
+          </p>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+            <SortableContext items={items.map((i) => i.id)} strategy={verticalListSortingStrategy}>
+              <div className="space-y-2">
+                {items.map((t, i) => (
+                  <Row key={t.id} ticket={t} index={i} />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
+
+          {error && <p className="mt-4 text-sm text-red-600 font-medium">{error}</p>}
+
+          <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-neutral-50 to-transparent">
+            <button
+              onClick={submit}
+              disabled={loading}
+              className="w-full max-w-md mx-auto block bg-red-700 text-white font-semibold py-4 rounded-xl shadow-lg disabled:opacity-50"
+            >
+              {loading ? "Submitting\u2026" : "Submit Ranking"}
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }
