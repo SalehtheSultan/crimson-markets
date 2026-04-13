@@ -37,43 +37,43 @@ export default function ResultsList({
 
   return (
     <div className="max-w-5xl mx-auto px-6">
-      {/* Header Section */}
+      {/* Header */}
       <header className="mb-12">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-outline-variant/20 pb-8">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-outline-variant pb-8">
           <div>
             <div className="flex items-center gap-3 mb-2">
               <span className="inline-block w-2.5 h-2.5 bg-primary rounded-full live-pulse"></span>
               <span className="font-label text-sm uppercase tracking-wider text-primary font-bold">Live Results</span>
             </div>
-            <h1 className="text-5xl md:text-6xl font-headline font-bold text-on-surface tracking-tight leading-none mb-4">
+            <h1 className="text-5xl md:text-6xl font-headline font-bold text-charcoal tracking-tight leading-none mb-4">
               {config.electionTitle}
             </h1>
-            <p className="text-lg text-on-surface-variant font-headline italic">
+            <p className="text-lg text-slate font-headline italic">
               Voting closes {config.votingDeadline}
             </p>
           </div>
-          <div className="bg-surface-container-low rounded-xl px-6 py-4 flex flex-col items-end text-right min-w-[150px]">
+          <div className="bg-surface-container-low rounded-[8px] px-6 py-4 flex flex-col items-end text-right min-w-[150px]">
             <span className="text-4xl font-headline font-extrabold text-primary">{total}</span>
-            <span className="font-label text-[11px] leading-tight uppercase tracking-[0.15em] text-on-surface-variant font-bold mt-1">
+            <span className="font-label text-[11px] leading-tight uppercase tracking-[0.15em] text-slate font-bold mt-1">
               Total Students<br />Voted
             </span>
           </div>
         </div>
       </header>
 
-      {/* Ranking Table/Grid */}
-      <div className="space-y-4">
-        {/* Table Header (Labels) */}
+      {/* Ranking Table */}
+      <div className="space-y-3">
+        {/* Table Header */}
         <div className="grid grid-cols-12 px-6 py-2">
-          <div className="col-span-1 text-on-surface-variant font-label text-xs uppercase tracking-widest font-bold">Rank</div>
-          <div className="col-span-7 text-on-surface-variant font-label text-xs uppercase tracking-widest font-bold">Ticket Name</div>
-          <div className="col-span-2 text-right text-on-surface-variant font-label text-xs uppercase tracking-widest font-bold">Votes</div>
-          <div className="col-span-2 text-right text-on-surface-variant font-label text-xs uppercase tracking-widest font-bold">Mean</div>
+          <div className="col-span-1 text-slate font-label text-xs uppercase tracking-widest font-bold">Rank</div>
+          <div className="col-span-7 text-slate font-label text-xs uppercase tracking-widest font-bold">Ticket Name</div>
+          <div className="col-span-2 text-right text-slate font-label text-xs uppercase tracking-widest font-bold">Votes</div>
+          <div className="col-span-2 text-right text-slate font-label text-xs uppercase tracking-widest font-bold">Mean</div>
         </div>
 
         {/* Ticket Cards */}
         {sorted.map((row, i) => {
-          const getBgOpacity = (index: number) => {
+          const getBadgeOpacity = (index: number) => {
             if (index < 3) return "bg-primary";
             if (index === 3) return "bg-primary/80";
             if (index === 4) return "bg-primary/70";
@@ -81,20 +81,23 @@ export default function ResultsList({
             return "bg-primary/50";
           };
           return (
-            <div key={row.id} className="grid grid-cols-12 items-center bg-surface-container-lowest hover:bg-surface-container transition-colors px-6 py-5 rounded-xl shadow-sm cursor-pointer group border border-transparent hover:border-primary/10">
+            <div
+              key={row.id}
+              className="grid grid-cols-12 items-center bg-paper hover:bg-surface-container-low transition-colors px-6 py-5 rounded-[8px] shadow-sm group border border-transparent hover:border-primary/10"
+            >
               <div className="col-span-1">
-                <div className={`w-10 h-10 rounded-full text-on-primary flex items-center justify-center font-headline text-xl font-bold ${getBgOpacity(i)}`}>
+                <div className={`w-10 h-10 rounded-full text-on-primary flex items-center justify-center font-headline text-xl font-bold ${getBadgeOpacity(i)}`}>
                   {i + 1}
                 </div>
               </div>
               <div className="col-span-7">
-                <h3 className="text-xl font-headline font-bold text-on-surface group-hover:text-primary transition-colors">
+                <h3 className="text-xl font-headline font-bold text-charcoal group-hover:text-primary transition-colors">
                   {row.name}
                 </h3>
               </div>
               <div className="col-span-2 text-right flex flex-col items-end">
-                <span className="text-lg font-headline font-bold text-on-surface">{row.vote_count}</span>
-                <span className="block text-[10px] uppercase text-on-surface-variant font-bold tracking-tighter">Votes</span>
+                <span className="text-lg font-headline font-bold text-charcoal">{row.vote_count}</span>
+                <span className="block text-[10px] uppercase text-slate font-bold tracking-tighter">Votes</span>
               </div>
               <div className="col-span-2 text-right">
                 <span className="font-mono text-primary font-medium">avg {Number(row.avg_rank).toFixed(2)}</span>
@@ -104,11 +107,11 @@ export default function ResultsList({
         })}
       </div>
 
-      {/* Call to Action / Information Section */}
+      {/* Info Section */}
       <section className="mt-16 grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div className="bg-surface-container-low rounded-xl p-8">
+        <div className="bg-surface-container-low rounded-[8px] p-8">
           <h4 className="font-headline font-bold text-2xl mb-4 text-primary">About the Markets</h4>
-          <p className="text-on-surface-variant leading-relaxed mb-4">
+          <p className="text-slate leading-relaxed mb-4">
             Crimson Markets uses real-time student sentiment analysis and historical voting data to predict election outcomes. These rankings are weighted by student preference data and verified HUA participation.
           </p>
           <Link href="#" className="text-primary font-bold hover:underline inline-flex items-center gap-1">
@@ -116,16 +119,16 @@ export default function ResultsList({
             <span className="material-symbols-outlined text-sm">arrow_forward</span>
           </Link>
         </div>
-        <div className="relative rounded-xl overflow-hidden min-h-[200px]">
-          <img 
-            alt="Harvard Memorial Hall" 
-            className="absolute inset-0 w-full h-full object-cover grayscale opacity-30" 
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuC8nOmeDxS7-q3jZcVFZpgrCk_xfx4SCL-wJ0Xg9o8qHWL8FJbf4XlCJMc8wWSxk-TBFrDqUcXq_MjZUvFJbtQtDAaXeceGEeb6HPmyGmFlIHH9Diwh4obEK0sO4kDF-PaU6KnquF891uikBxsjJb0czfNSr7i9SsNn9VwXSo-K2v_ClXM6RoR6-4OecxI2LKyKWi-UjzPITpX4xcwXBJCSH7RvkJkG3koLPESlTWiFmP0naR2lKnv0PpkPhKVoVYGIyfW5fWemHQ" 
+        <div className="relative rounded-[8px] overflow-hidden min-h-[200px]">
+          <img
+            alt="Harvard Memorial Hall"
+            className="absolute inset-0 w-full h-full object-cover grayscale opacity-30"
+            src="https://lh3.googleusercontent.com/aida-public/AB6AXuC8nOmeDxS7-q3jZcVFZpgrCk_xfx4SCL-wJ0Xg9o8qHWL8FJbf4XlCJMc8wWSxk-TBFrDqUcXq_MjZUvFJbtQtDAaXeceGEeb6HPmyGmFlIHH9Diwh4obEK0sO4kDF-PaU6KnquF891uikBxsjJb0czfNSr7i9SsNn9VwXSo-K2v_ClXM6RoR6-4OecxI2LKyKWi-UjzPITpX4xcwXBJCSH7RvkJkG3koLPESlTWiFmP0naR2lKnv0PpkPhKVoVYGIyfW5fWemHQ"
           />
           <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 to-transparent flex items-center justify-center p-8">
             <div className="text-center z-10">
               <span className="material-symbols-outlined text-4xl text-primary mb-2">analytics</span>
-              <p className="text-on-surface font-headline italic font-semibold text-lg text-shadow-sm">"A predictive tool for the modern scholar."</p>
+              <p className="text-charcoal font-headline italic font-semibold text-lg">&ldquo;A predictive tool for the modern scholar.&rdquo;</p>
             </div>
           </div>
         </div>
