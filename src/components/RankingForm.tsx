@@ -19,15 +19,20 @@ function Row({ ticket, index }: { ticket: Ticket; index: number }) {
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`flex items-center gap-3 bg-white border rounded-xl p-4 shadow-sm select-none touch-none ${isDragging ? "opacity-60" : ""}`}
+      className={`group relative flex items-center bg-surface-container-lowest p-5 rounded-xl transition-all duration-200 hover:scale-[1.01] hover:shadow-lg border-b-2 border-transparent hover:border-primary/10 cursor-grab active:cursor-grabbing select-none touch-none ${isDragging ? "opacity-60 z-10 shadow-xl" : ""}`}
       {...attributes}
       {...listeners}
     >
-      <div className="w-8 h-8 rounded-full bg-red-700 text-white font-bold flex items-center justify-center text-sm">
+      <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary text-on-primary font-headline font-bold text-lg mr-6">
         {index + 1}
       </div>
-      <div className="flex-1 font-medium">{ticket.name}</div>
-      <div className="text-neutral-400">&#9776;</div>
+      <div className="flex-grow">
+        <h3 className="text-[17px] font-semibold text-on-surface tracking-tight">{ticket.name}</h3>
+      </div>
+      <div className="text-outline-variant group-hover:text-primary transition-colors flex flex-col gap-[3px] opacity-70">
+        <div className="w-4 h-[2px] bg-current rounded-full"></div>
+        <div className="w-4 h-[2px] bg-current rounded-full"></div>
+      </div>
     </div>
   );
 }
@@ -140,15 +145,20 @@ export default function RankingForm({ tickets }: { tickets: Ticket[] }) {
   }
 
   return (
-    <div className="max-w-md mx-auto p-4 pb-32">
-      <h1 className="text-2xl font-bold mb-1">Rank the HUA tickets</h1>
-      <p className="text-neutral-600 text-sm mb-6">
-        Drag from most likely (1) to least likely ({config.ticketCount}) to win. You can only submit once.
-      </p>
+    <div className="max-w-2xl mx-auto px-4 md:px-8">
+      {/* Header Section */}
+      <div className="mb-12 text-center pt-8">
+        <h1 className="text-4xl md:text-5xl font-headline font-extrabold tracking-tight text-primary mb-4">
+          Rank the HUA tickets
+        </h1>
+        <p className="text-on-surface-variant font-body text-[17px] leading-relaxed max-w-lg mx-auto">
+          Drag from most likely <span className="font-bold text-primary">(1)</span> to least likely <span className="font-bold text-primary">({config.ticketCount})</span> to win. You can only submit once.
+        </p>
+      </div>
 
       {step === "email" && (
-        <div className="space-y-3">
-          <label htmlFor="email" className="block text-sm font-medium text-neutral-700">
+        <div className="space-y-4 max-w-md mx-auto md:mx-0 bg-surface-container-low p-6 rounded-2xl">
+          <label htmlFor="email" className="block text-sm font-label uppercase tracking-wider font-bold text-on-surface-variant">
             Harvard Email
           </label>
           <input
@@ -158,13 +168,13 @@ export default function RankingForm({ tickets }: { tickets: Ticket[] }) {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && sendCode()}
-            className="w-full border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-red-700"
+            className="w-full border-none bg-surface-container-lowest rounded-xl px-5 py-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary shadow-sm"
           />
-          {error && <p className="text-sm text-red-600 font-medium">{error}</p>}
+          {error && <p className="text-sm text-error font-medium">{error}</p>}
           <button
             onClick={sendCode}
             disabled={loading}
-            className="w-full bg-red-700 text-white font-semibold py-3 rounded-xl shadow-lg disabled:opacity-50"
+            className="w-full bg-primary text-on-primary font-headline font-bold text-lg py-4 rounded-full shadow-lg disabled:opacity-50 hover:bg-primary-container hover:text-on-primary-container active:scale-95 transition-all duration-150 mt-4"
           >
             {loading ? "Sending\u2026" : "Send Verification Code"}
           </button>
@@ -172,9 +182,9 @@ export default function RankingForm({ tickets }: { tickets: Ticket[] }) {
       )}
 
       {step === "otp" && (
-        <div className="space-y-3">
-          <p className="text-sm text-neutral-600">
-            We sent a 6-digit code to <strong>{email}</strong>. Check your inbox.
+        <div className="space-y-4 max-w-md mx-auto md:mx-0 bg-surface-container-low p-6 rounded-2xl">
+          <p className="text-sm text-on-surface-variant">
+            We sent a 6-digit code to <strong className="text-on-surface">{email}</strong>. Check your inbox.
           </p>
           <input
             type="text"
@@ -184,19 +194,19 @@ export default function RankingForm({ tickets }: { tickets: Ticket[] }) {
             value={otp}
             onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
             onKeyDown={(e) => e.key === "Enter" && verifyCode()}
-            className="w-full border rounded-xl px-4 py-3 text-sm text-center tracking-widest font-mono focus:outline-none focus:ring-2 focus:ring-red-700"
+            className="w-full border-none bg-surface-container-lowest rounded-xl px-5 py-4 text-center tracking-[0.5em] font-mono text-lg focus:outline-none focus:ring-2 focus:ring-primary shadow-sm"
           />
-          {error && <p className="text-sm text-red-600 font-medium">{error}</p>}
+          {error && <p className="text-sm text-error font-medium">{error}</p>}
           <button
             onClick={verifyCode}
             disabled={loading || otp.length !== 6}
-            className="w-full bg-red-700 text-white font-semibold py-3 rounded-xl shadow-lg disabled:opacity-50"
+            className="w-full bg-primary text-on-primary font-headline font-bold text-lg py-4 rounded-full shadow-lg disabled:opacity-50 hover:bg-primary-container hover:text-on-primary-container active:scale-95 transition-all duration-150 mt-4"
           >
             {loading ? "Verifying\u2026" : "Verify Code"}
           </button>
           <button
             onClick={() => { setStep("email"); setOtp(""); setError(""); }}
-            className="w-full text-sm text-neutral-500 hover:text-neutral-700"
+            className="w-full text-sm font-label uppercase tracking-wide text-on-surface-variant hover:text-primary transition-colors mt-2"
           >
             Use a different email
           </button>
@@ -205,12 +215,12 @@ export default function RankingForm({ tickets }: { tickets: Ticket[] }) {
 
       {step === "rank" && (
         <>
-          <p className="text-sm text-green-700 font-medium mb-4">
-            Verified as {email}
+          <p className="text-sm text-primary font-medium mb-4 text-center md:text-left flex items-center justify-center md:justify-start gap-2">
+            <span className="material-symbols-outlined text-sm">verified</span> Verified as {email}
           </p>
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
             <SortableContext items={items.map((i) => i.id)} strategy={verticalListSortingStrategy}>
-              <div className="space-y-2">
+              <div className="space-y-4 pb-8">
                 {items.map((t, i) => (
                   <Row key={t.id} ticket={t} index={i} />
                 ))}
@@ -218,13 +228,16 @@ export default function RankingForm({ tickets }: { tickets: Ticket[] }) {
             </SortableContext>
           </DndContext>
 
-          {error && <p className="mt-4 text-sm text-red-600 font-medium">{error}</p>}
+          <div className="mb-24"></div>
 
-          <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-neutral-50 to-transparent">
+          {error && <p className="mt-4 text-sm text-error font-medium text-center bg-error-container p-4 rounded-xl">{error}</p>}
+
+          {/* Fixed Action Bar */}
+          <div className="fixed bottom-0 left-0 right-0 py-8 px-6 bg-gradient-to-t from-background via-background to-transparent flex justify-center items-center z-40">
             <button
               onClick={submit}
               disabled={loading}
-              className="w-full max-w-md mx-auto block bg-red-700 text-white font-semibold py-4 rounded-xl shadow-lg disabled:opacity-50"
+              className="w-full max-w-[420px] bg-primary text-on-primary py-4 px-8 rounded-full font-headline font-bold text-lg shadow-xl hover:bg-primary-container hover:text-on-primary-container active:scale-95 transition-all duration-150 disabled:opacity-50"
             >
               {loading ? "Submitting\u2026" : "Submit Ranking"}
             </button>
