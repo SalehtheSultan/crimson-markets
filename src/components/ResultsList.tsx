@@ -1,12 +1,17 @@
 "use client";
 import { useEffect, useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase-browser";
+import Link from "next/link";
 
 type Row = { id: number; name: string; avg_rank: number; vote_count: number };
 
 export default function ResultsList({
-  initialResults, initialTotal,
-}: { initialResults: Row[]; initialTotal: number }) {
+  initialResults,
+  initialTotal,
+}: {
+  initialResults: Row[];
+  initialTotal: number;
+}) {
   const [results, setResults] = useState(initialResults);
   const [total, setTotal] = useState(initialTotal);
 
@@ -22,7 +27,9 @@ export default function ResultsList({
         if (t) setTotal((t as { count: number }).count);
       })
       .subscribe();
-    return () => { supabaseBrowser.removeChannel(channel); };
+    return () => {
+      supabaseBrowser.removeChannel(channel);
+    };
   }, []);
 
   const sorted = [...results].sort((a, b) => Number(a.avg_rank) - Number(b.avg_rank));
@@ -34,7 +41,12 @@ export default function ResultsList({
         <div className="text-sm text-neutral-600">{total} students</div>
       </header>
       <p className="text-neutral-600 text-sm mb-1">HUA Co-Presidents 2026</p>
-      <p className="text-xs text-neutral-500 mb-6">Voting closes Fri 4/17, 11:59pm</p>
+      <div className="flex items-center justify-between mb-6">
+        <p className="text-xs text-neutral-500">Voting closes Fri 4/17, 11:59pm</p>
+        <Link href="/rank" className="text-xs text-red-700 font-medium hover:underline">
+          Submit your ranking
+        </Link>
+      </div>
 
       <div className="space-y-2">
         {sorted.map((row, i) => (

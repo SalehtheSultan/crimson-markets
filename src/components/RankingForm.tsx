@@ -2,10 +2,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent
+  DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent,
 } from "@dnd-kit/core";
 import {
-  arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy
+  arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
@@ -25,14 +25,16 @@ function Row({ ticket, index }: { ticket: Ticket; index: number }) {
         {index + 1}
       </div>
       <div className="flex-1 font-medium">{ticket.name}</div>
-      <div className="text-neutral-400">☰</div>
+      <div className="text-neutral-400">&#9776;</div>
     </div>
   );
 }
 
 export default function RankingForm({ tickets }: { tickets: Ticket[] }) {
   const [items, setItems] = useState(tickets);
+  const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
   const router = useRouter();
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -42,21 +44,35 @@ export default function RankingForm({ tickets }: { tickets: Ticket[] }) {
   function onDragEnd(e: DragEndEvent) {
     const { active, over } = e;
     if (!over || active.id === over.id) return;
-    const oldIdx = items.findIndex(t => t.id === active.id);
-    const newIdx = items.findIndex(t => t.id === over.id);
+    const oldIdx = items.findIndex((t) => t.id === active.id);
+    const newIdx = items.findIndex((t) => t.id === over.id);
     setItems(arrayMove(items, oldIdx, newIdx));
   }
 
   async function submit() {
+    setError("");
+
+    if (!email.endsWith("@college.harvard.edu")) {
+      setError("Please use your @college.harvard.edu email.");
+      return;
+    }
+
     setSubmitting(true);
     const rankings = items.map((t, i) => ({ ticketId: t.id, rank: i + 1 }));
     const res = await fetch("/api/rank", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ rankings }),
+      body: JSON.stringify({ email, rankings }),
     });
-    if (res.ok) router.push("/");
-    else { setSubmitting(false); alert("Submission failed."); }
+
+    if (res.ok) {
+      localStorage.setItem("crimson-markets-email", email);
+      router.push("/");
+    } else {
+      const data = await res.json();
+      setError(data.error || "Submission failed.");
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -66,13 +82,33 @@ export default function RankingForm({ tickets }: { tickets: Ticket[] }) {
         Drag from most likely (1) to least likely (7) to win. You can only submit once.
       </p>
 
+      <div className="mb-6">
+        <label htmlFor="email" className="block text-sm font-medium text-neutral-700 mb-1">
+          Harvard Email
+        </label>
+        <input
+          id="email"
+          type="email"
+          placeholder="you@college.harvard.edu"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="w-full border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-red-700"
+        />
+      </div>
+
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-        <SortableContext items={items.map(i => i.id)} strategy={verticalListSortingStrategy}>
+        <SortableContext items={items.map((i) => i.id)} strategy={verticalListSortingStrategy}>
           <div className="space-y-2">
-            {items.map((t, i) => <Row key={t.id} ticket={t} index={i} />)}
+            {items.map((t, i) => (
+              <Row key={t.id} ticket={t} index={i} />
+            ))}
           </div>
         </SortableContext>
       </DndContext>
+
+      {error && (
+        <p className="mt-4 text-sm text-red-600 font-medium">{error}</p>
+      )}
 
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-neutral-50 to-transparent">
         <button
@@ -80,7 +116,7 @@ export default function RankingForm({ tickets }: { tickets: Ticket[] }) {
           disabled={submitting}
           className="w-full max-w-md mx-auto block bg-red-700 text-white font-semibold py-4 rounded-xl shadow-lg disabled:opacity-50"
         >
-          {submitting ? "Submitting…" : "Submit Ranking"}
+          {submitting ? "Submitting\u2026" : "Submit Ranking"}
         </button>
       </div>
     </div>
