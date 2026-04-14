@@ -1,6 +1,7 @@
+import crypto from "crypto";
 import { supabaseAdmin } from "@/lib/supabase";
 import { rateLimit } from "@/lib/rate-limit";
-import { config } from "@/lib/config";
+import { validateEmail } from "@/lib/email";
 import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
 
@@ -11,8 +12,9 @@ function getResend() {
 }
 
 export async function POST(req: NextRequest) {
-  // Rate limit: 3 codes per email per 10 min, 10 total per IP per 10 min
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+
+  // IP-level rate limit: 10 requests per 10 min
   const ipRL = rateLimit(`verify-ip:${ip}`, { maxRequests: 10, windowMs: 10 * 60 * 1000 });
   if (!ipRL.success) {
     return NextResponse.json({ error: "Too many requests. Try again later." }, { status: 429 });
@@ -30,27 +32,32 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Email is required" }, { status: 400 });
   }
 
-  const email = rawEmail.toLowerCase().trim();
-
-  // Validate format and domain
-  if (email.length > 254 || !email.endsWith(`@${config.allowedEmailDomain}`)) {
-    return NextResponse.json({ error: `Must use a @${config.allowedEmailDomain} email` }, { status: 400 });
+  const result = validateEmail(rawEmail);
+  if (!result.ok) {
+    return NextResponse.json({ error: result.error }, { status: 400 });
   }
+  const email = result.email;
 
-  // Per-email rate limit
+  // Per-email rate limit: 3 codes per 10 min
   const emailRL = rateLimit(`verify-email:${email}`, { maxRequests: 3, windowMs: 10 * 60 * 1000 });
   if (!emailRL.success) {
     return NextResponse.json({ error: "Too many codes sent. Check your inbox or try again in 10 minutes." }, { status: 429 });
   }
 
-  // Generate 6-digit code
-  const code = String(Math.floor(100000 + Math.random() * 900000));
-  const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 min
+  // Generate cryptographically secure 6-digit code
+  const buf = crypto.randomBytes(4);
+  const num = buf.readUInt32BE(0) % 900000;
+  const code = String(100000 + num);
 
-  // Upsert code (one active code per email)
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+
+  // Upsert code (one active code per email), reset used_at
   const { error: dbError } = await supabaseAdmin
     .from("verification_codes")
-    .upsert({ email, code, expires_at: expiresAt }, { onConflict: "email" });
+    .upsert(
+      { email, code, expires_at: expiresAt, used_at: null },
+      { onConflict: "email" }
+    );
 
   if (dbError) {
     console.error("Failed to store verification code:", dbError.message);
