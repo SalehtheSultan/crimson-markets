@@ -43,15 +43,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Too many codes sent. Check your inbox or try again in 10 minutes." }, { status: 429 });
   }
 
-  // Check if already ranked
-  const { count } = await supabaseAdmin
-    .from("rankings")
-    .select("*", { count: "exact", head: true })
-    .eq("email", email);
-  if ((count ?? 0) > 0) {
-    return NextResponse.json({ error: "This email has already submitted a ranking." }, { status: 409 });
-  }
-
   // Generate 6-digit code
   const code = String(Math.floor(100000 + Math.random() * 900000));
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 min

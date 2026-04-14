@@ -12,18 +12,22 @@ export async function GET(req: NextRequest) {
   }
 
   const email = req.nextUrl.searchParams.get("email");
-  if (!email) return NextResponse.json({ hasRanked: false });
+  if (!email) return NextResponse.json({ hasRanked: false, rankings: [] });
 
   // Sanitize and validate email
   const sanitized = email.toLowerCase().trim();
   if (!sanitized.endsWith(`@${config.allowedEmailDomain}`) || sanitized.length > 254) {
-    return NextResponse.json({ hasRanked: false });
+    return NextResponse.json({ hasRanked: false, rankings: [] });
   }
 
-  const { count } = await supabaseAdmin
+  const { data: rankings } = await supabaseAdmin
     .from("rankings")
-    .select("*", { count: "exact", head: true })
-    .eq("email", sanitized);
+    .select("ticket_id, rank")
+    .eq("email", sanitized)
+    .order("rank");
 
-  return NextResponse.json({ hasRanked: (count ?? 0) > 0 });
+  return NextResponse.json({
+    hasRanked: (rankings?.length ?? 0) > 0,
+    rankings: rankings ?? [],
+  });
 }

@@ -85,16 +85,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid ticket IDs" }, { status: 400 });
   }
 
-  // Reject if already ranked (one-shot)
-  const { count } = await supabaseAdmin
-    .from("rankings")
-    .select("*", { count: "exact", head: true })
-    .eq("email", email);
-  if ((count ?? 0) > 0) {
-    return NextResponse.json({ error: "You have already submitted a ranking" }, { status: 409 });
-  }
+  // Delete any existing rankings for this email (allows edits)
+  await supabaseAdmin.from("rankings").delete().eq("email", email);
 
-  // Insert rankings
+  // Insert new rankings
   const rows = rankings.map((r) => ({
     email,
     ticket_id: r.ticketId,

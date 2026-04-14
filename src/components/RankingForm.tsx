@@ -92,6 +92,7 @@ export default function RankingForm({ tickets }: { tickets: Ticket[] }) {
   const [step, setStep] = useState<"email" | "code" | "rank">("email");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
   const router = useRouter();
 
   const sensors = useSensors(
@@ -140,6 +141,27 @@ export default function RankingForm({ tickets }: { tickets: Ticket[] }) {
     setStep("code");
   }
 
+  async function proceedToRank() {
+    // Fetch existing rankings for this email
+    const trimmed = email.toLowerCase().trim();
+    const statusRes = await fetch(`/api/status?email=${encodeURIComponent(trimmed)}`);
+    if (statusRes.ok) {
+      const statusData = await statusRes.json();
+      if (statusData.hasRanked && statusData.rankings?.length > 0) {
+        setIsEditing(true);
+        // Reorder tickets to match existing rankings
+        const rankMap = new Map<number, number>(statusData.rankings.map((r: { ticket_id: number; rank: number }) => [r.ticket_id, r.rank]));
+        const sorted = [...tickets].sort((a, b) => {
+          const rankA = rankMap.get(a.id) ?? 999;
+          const rankB = rankMap.get(b.id) ?? 999;
+          return rankA - rankB;
+        });
+        setItems(sorted);
+      }
+    }
+    setStep("rank");
+  }
+
   async function submit() {
     setError("");
     if (!/^\d{6}$/.test(code.trim())) { setError("Please enter a valid 6-digit code."); return; }
@@ -163,7 +185,7 @@ export default function RankingForm({ tickets }: { tickets: Ticket[] }) {
           Rank the HUA tickets
         </h1>
         <p className="text-slate font-body text-sm md:text-[17px] leading-relaxed max-w-lg mx-auto">
-          Drag from most likely <span className="font-bold text-primary">(1)</span> to least likely <span className="font-bold text-primary">({config.ticketCount})</span> to win. You can only submit once.
+          Drag from most likely <span className="font-bold text-primary">(1)</span> to least likely <span className="font-bold text-primary">({config.ticketCount})</span> to win. You can update your ranking anytime.
         </p>
         <p className="text-[10px] md:text-xs text-slate font-label uppercase tracking-widest mt-2 md:mt-3 flex items-center justify-center gap-1">
           <span className="material-symbols-outlined text-[10px] md:text-xs">shield</span>
@@ -190,10 +212,10 @@ export default function RankingForm({ tickets }: { tickets: Ticket[] }) {
           <p className="text-sm text-slate">We sent a 6-digit code to <strong className="text-charcoal">{email}</strong></p>
           <input type="text" inputMode="numeric" autoComplete="one-time-code" maxLength={6} placeholder="000000"
             value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-            onKeyDown={(e) => { if (e.key === "Enter" && code.length === 6) setStep("rank"); }}
+            onKeyDown={(e) => { if (e.key === "Enter" && code.length === 6) proceedToRank(); }}
             className="w-full border-none bg-paper rounded-[8px] px-4 md:px-5 py-4 md:py-5 text-center tracking-[0.5em] font-mono text-2xl text-charcoal focus:outline-none focus:ring-2 focus:ring-primary shadow-sm" />
           {error && <p className="text-sm text-error font-medium">{error}</p>}
-          <button onClick={() => setStep("rank")} disabled={code.length !== 6}
+          <button onClick={proceedToRank} disabled={code.length !== 6}
             className="w-full bg-primary text-on-primary font-headline font-bold text-base md:text-lg py-3.5 md:py-4 rounded-full shadow-lg disabled:opacity-50 hover:bg-primary-container active:scale-95 transition-all duration-150 mt-2">
             Continue
           </button>
@@ -204,9 +226,17 @@ export default function RankingForm({ tickets }: { tickets: Ticket[] }) {
 
       {step === "rank" && (
         <>
-          <p className="text-sm text-primary font-medium mb-4 text-center flex items-center justify-center gap-2">
-            <span className="material-symbols-outlined text-sm">verified</span> {email}
-          </p>
+          <div className="text-center mb-4 space-y-1">
+            <p className="text-sm text-primary font-medium flex items-center justify-center gap-2">
+              <span className="material-symbols-outlined text-sm">verified</span> {email}
+            </p>
+            {isEditing && (
+              <p className="text-xs text-slate font-label flex items-center justify-center gap-1">
+                <span className="material-symbols-outlined text-xs">edit</span>
+                Editing your previous ranking
+              </p>
+            )}
+          </div>
 
           <DndContext
             sensors={sensors}
@@ -242,7 +272,7 @@ export default function RankingForm({ tickets }: { tickets: Ticket[] }) {
           <div className="fixed bottom-0 left-0 right-0 py-4 md:py-6 px-4 md:px-6 glass-nav border-t border-outline-variant flex justify-center items-center z-40">
             <button onClick={submit} disabled={loading}
               className="w-full max-w-[420px] bg-primary text-on-primary py-3.5 md:py-4 px-8 rounded-full font-headline font-bold text-base md:text-lg shadow-xl hover:bg-primary-container active:scale-95 transition-all duration-150 disabled:opacity-50">
-              {loading ? "Submitting\u2026" : "Submit Ranking"}
+              {loading ? "Submitting\u2026" : isEditing ? "Update Ranking" : "Submit Ranking"}
             </button>
           </div>
         </>
