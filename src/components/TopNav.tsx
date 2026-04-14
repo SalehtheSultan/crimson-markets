@@ -7,20 +7,20 @@ export default function TopNav() {
 
   return (
     <nav className="fixed top-0 w-full z-50 glass-nav shadow-sm">
-      <div className="flex justify-between items-center px-6 h-16 max-w-7xl mx-auto w-full">
-        <Link href="/" className="text-2xl font-black tracking-tighter text-primary font-headline">
+      <div className="flex justify-between items-center px-4 md:px-6 h-14 md:h-16 max-w-7xl mx-auto w-full">
+        <Link href="/" className="text-xl md:text-2xl font-black tracking-tighter text-primary font-headline">
           Crimson Markets
         </Link>
-        <div className="flex gap-6">
+        <div className="flex gap-4 md:gap-6">
           <Link
             href="/"
-            className={`pb-1 font-body font-medium text-sm transition-colors ${pathname === '/' ? 'text-primary border-b-2 border-primary font-bold' : 'text-slate hover:text-primary'}`}
+            className={`pb-1 font-body font-medium text-xs md:text-sm transition-colors ${pathname === '/' ? 'text-primary border-b-2 border-primary font-bold' : 'text-slate hover:text-primary'}`}
           >
             Markets
           </Link>
           <Link
             href="/rank"
-            className={`pb-1 font-body font-medium text-sm transition-colors ${pathname === '/rank' ? 'text-primary border-b-2 border-primary font-bold' : 'text-slate hover:text-primary'}`}
+            className={`pb-1 font-body font-medium text-xs md:text-sm transition-colors ${pathname === '/rank' ? 'text-primary border-b-2 border-primary font-bold' : 'text-slate hover:text-primary'}`}
           >
             Rankings
           </Link>

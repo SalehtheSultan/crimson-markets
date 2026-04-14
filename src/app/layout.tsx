@@ -2,7 +2,10 @@ import "./globals.css";
 import Link from "next/link";
 import TopNav from "@/components/TopNav";
 
-export const metadata = { title: "Crimson Markets" };
+export const metadata = {
+  title: "Crimson Markets",
+  viewport: "width=device-width, initial-scale=1, maximum-scale=1",
+};
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -16,20 +19,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="bg-background text-charcoal font-body antialiased min-h-screen flex flex-col">
         <TopNav />
 
-        <main className="flex-grow pt-24 pb-20">
+        <main className="flex-grow pt-18 md:pt-24 pb-16 md:pb-20">
           {children}
         </main>
 
-        <footer className="w-full py-12 border-t border-outline-variant bg-surface-container-low mt-auto">
-          <div className="flex flex-col md:flex-row justify-between items-center px-8 gap-4 max-w-7xl mx-auto">
-            <div className="font-body text-xs tracking-wider uppercase text-slate">
-              &copy; 2025 Crimson Markets. All rights reserved.
+        <footer className="w-full py-8 md:py-12 border-t border-outline-variant bg-surface-container-low mt-auto">
+          <div className="flex flex-col items-center gap-4 px-4 md:px-8 max-w-7xl mx-auto">
+            <div className="flex flex-wrap justify-center gap-4 md:gap-6">
+              <Link href="#" className="font-body text-[10px] md:text-xs tracking-wider uppercase text-slate hover:text-primary transition-colors">About</Link>
+              <Link href="#" className="font-body text-[10px] md:text-xs tracking-wider uppercase text-slate hover:text-primary transition-colors">Privacy</Link>
+              <Link href="#" className="font-body text-[10px] md:text-xs tracking-wider uppercase text-slate hover:text-primary transition-colors">Terms</Link>
+              <Link href="#" className="font-body text-[10px] md:text-xs tracking-wider uppercase font-bold text-primary hover:text-primary-container transition-colors">Harvard University</Link>
             </div>
-            <div className="flex gap-6">
-              <Link href="#" className="font-body text-xs tracking-wider uppercase text-slate hover:text-primary transition-colors">About</Link>
-              <Link href="#" className="font-body text-xs tracking-wider uppercase text-slate hover:text-primary transition-colors">Privacy</Link>
-              <Link href="#" className="font-body text-xs tracking-wider uppercase text-slate hover:text-primary transition-colors">Terms</Link>
-              <Link href="#" className="font-body text-xs tracking-wider uppercase font-bold text-primary hover:text-primary-container transition-colors">Harvard University</Link>
+            <div className="font-body text-[10px] md:text-xs tracking-wider uppercase text-slate">
+              &copy; 2025 Crimson Markets. All rights reserved.
             </div>
           </div>
         </footer>
