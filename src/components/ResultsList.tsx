@@ -4,7 +4,7 @@ import { supabaseBrowser } from "@/lib/supabase-browser";
 import { config } from "@/lib/config";
 import Link from "next/link";
 
-type Row = { id: number; name: string; avg_rank: number; vote_count: number };
+type Row = { id: number; name: string; avg_rank: number; vote_count: number; first_place_count: number };
 
 export default function ResultsList({
   initialResults,
@@ -80,8 +80,8 @@ export default function ResultsList({
       <div className="hidden md:grid grid-cols-12 px-6 py-2 mb-1">
         <div className="col-span-1 text-slate font-label text-xs uppercase tracking-widest font-bold">Rank</div>
         <div className="col-span-7 text-slate font-label text-xs uppercase tracking-widest font-bold">Ticket Name</div>
-        <div className="col-span-2 text-right text-slate font-label text-xs uppercase tracking-widest font-bold">Votes</div>
-        <div className="col-span-2 text-right text-slate font-label text-xs uppercase tracking-widest font-bold">Mean</div>
+        <div className="col-span-2 text-right text-slate font-label text-xs uppercase tracking-widest font-bold">#1 Votes</div>
+        <div className="col-span-2 text-right text-slate font-label text-xs uppercase tracking-widest font-bold">Avg Place</div>
       </div>
 
       {/* Ticket Cards */}
@@ -111,7 +111,7 @@ export default function ResultsList({
                     {row.name}
                   </h3>
                   <div className="flex items-center gap-3">
-                    <span className="text-sm text-slate font-medium">{row.vote_count} votes</span>
+                    <span className="text-sm text-slate font-medium">{row.first_place_count} &#x2116;1</span>
                     <span className="font-mono text-sm text-primary font-medium">avg {Number(row.avg_rank).toFixed(2)}</span>
                   </div>
                 </div>
@@ -136,8 +136,8 @@ export default function ResultsList({
                   )}
                 </div>
                 <div className="col-span-2 text-right flex flex-col items-end">
-                  <span className={`font-headline font-bold text-charcoal ${isLeader ? "text-xl" : "text-lg"}`}>{row.vote_count}</span>
-                  <span className="block text-[10px] uppercase text-slate font-bold tracking-tighter">Votes</span>
+                  <span className={`font-headline font-bold text-charcoal ${isLeader ? "text-xl" : "text-lg"}`}>{row.first_place_count}</span>
+                  <span className="block text-[10px] uppercase text-slate font-bold tracking-tighter">#1 Votes</span>
                 </div>
                 <div className="col-span-2 text-right">
                   <span className={`font-mono text-primary font-medium ${isLeader ? "text-base" : ""}`}>avg {Number(row.avg_rank).toFixed(2)}</span>
