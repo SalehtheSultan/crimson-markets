@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 import { config } from "@/lib/config";
+import Link from "next/link";
 
 type Row = { id: number; name: string; avg_rank: number; vote_count: number };
 
@@ -52,14 +53,28 @@ export default function ResultsList({
               Voting closes {config.votingDeadline}
             </p>
           </div>
-          <div className="bg-surface-container-low rounded-[8px] px-4 md:px-6 py-3 md:py-4 flex flex-row md:flex-col items-center md:items-end gap-2 md:gap-0 text-right min-w-[120px]">
-            <span className="text-3xl md:text-4xl font-headline font-extrabold text-primary">{total}</span>
-            <span className="font-label text-[11px] leading-tight uppercase tracking-[0.1em] md:tracking-[0.15em] text-slate font-bold md:mt-1">
-              Students Voted
-            </span>
+          <div className="flex flex-row md:flex-col items-center md:items-end gap-3 md:gap-0">
+            <div className="bg-surface-container-low rounded-[8px] px-4 md:px-6 py-3 md:py-4 flex flex-row md:flex-col items-center md:items-end gap-2 md:gap-0 text-right min-w-[120px]">
+              <span className="text-3xl md:text-4xl font-headline font-extrabold text-primary">{total}</span>
+              <span className="font-label text-[11px] leading-tight uppercase tracking-[0.1em] md:tracking-[0.15em] text-slate font-bold md:mt-1">
+                Students Voted
+              </span>
+            </div>
           </div>
         </div>
       </header>
+
+      {/* CTA Banner */}
+      <div className="mb-8 bg-gradient-to-r from-primary to-primary-container rounded-[8px] p-5 md:p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div>
+          <h3 className="font-headline font-bold text-lg md:text-xl text-on-primary mb-1">Have you ranked yet?</h3>
+          <p className="text-on-primary/80 text-sm">Submit your prediction — it only takes 30 seconds.</p>
+        </div>
+        <Link href="/rank"
+          className="shrink-0 bg-paper text-primary font-headline font-bold px-6 py-3 rounded-full shadow-lg hover:shadow-xl active:scale-95 transition-all duration-150 text-sm md:text-base">
+          Rank Now
+        </Link>
+      </div>
 
       {/* Desktop Table Header - hidden on mobile */}
       <div className="hidden md:grid grid-cols-12 px-6 py-2 mb-1">
@@ -72,22 +87,27 @@ export default function ResultsList({
       {/* Ticket Cards */}
       <div className="space-y-3">
         {sorted.map((row, i) => {
-          const getBadgeOpacity = (index: number) => {
-            if (index < 3) return "bg-primary";
-            if (index === 3) return "bg-primary/80";
-            if (index === 4) return "bg-primary/70";
-            if (index === 5) return "bg-primary/60";
-            return "bg-primary/50";
+          const getBadgeStyle = (index: number) => {
+            if (index === 0) return "bg-primary text-on-primary ring-2 ring-primary/30 ring-offset-2";
+            if (index < 3) return "bg-primary text-on-primary";
+            if (index === 3) return "bg-primary/80 text-on-primary";
+            if (index === 4) return "bg-primary/70 text-on-primary";
+            if (index === 5) return "bg-primary/60 text-on-primary";
+            return "bg-primary/50 text-on-primary";
           };
+          const isLeader = i === 0;
           return (
-            <div key={row.id} className="bg-paper hover:bg-surface-container-low transition-colors rounded-[8px] shadow-sm group border border-transparent hover:border-primary/10">
+            <div key={row.id}
+              className={`bg-paper hover:bg-surface-container-low transition-colors rounded-[8px] shadow-sm group border hover:border-primary/10
+                ${isLeader ? "border-primary/20 shadow-md ring-1 ring-primary/10" : "border-transparent"}`}
+            >
               {/* Mobile layout */}
               <div className="flex md:hidden items-start gap-3 p-4">
-                <div className={`w-9 h-9 shrink-0 rounded-full text-on-primary flex items-center justify-center font-headline text-lg font-bold ${getBadgeOpacity(i)}`}>
+                <div className={`w-9 h-9 shrink-0 rounded-full flex items-center justify-center font-headline text-lg font-bold ${getBadgeStyle(i)}`}>
                   {i + 1}
                 </div>
                 <div className="flex-grow min-w-0">
-                  <h3 className="text-base font-headline font-bold text-charcoal leading-snug mb-1.5">
+                  <h3 className={`font-headline font-bold leading-snug mb-1.5 ${isLeader ? "text-lg text-primary" : "text-base text-charcoal"}`}>
                     {row.name}
                   </h3>
                   <div className="flex items-center gap-3">
@@ -95,26 +115,32 @@ export default function ResultsList({
                     <span className="font-mono text-sm text-primary font-medium">avg {Number(row.avg_rank).toFixed(2)}</span>
                   </div>
                 </div>
+                {isLeader && (
+                  <span className="material-symbols-outlined text-primary text-lg mt-0.5">trending_up</span>
+                )}
               </div>
 
               {/* Desktop layout */}
               <div className="hidden md:grid grid-cols-12 items-center px-6 py-5">
                 <div className="col-span-1">
-                  <div className={`w-10 h-10 rounded-full text-on-primary flex items-center justify-center font-headline text-xl font-bold ${getBadgeOpacity(i)}`}>
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-headline text-xl font-bold ${getBadgeStyle(i)}`}>
                     {i + 1}
                   </div>
                 </div>
-                <div className="col-span-7">
-                  <h3 className="text-xl font-headline font-bold text-charcoal group-hover:text-primary transition-colors">
+                <div className="col-span-7 flex items-center gap-2">
+                  <h3 className={`font-headline font-bold group-hover:text-primary transition-colors ${isLeader ? "text-2xl text-primary" : "text-xl text-charcoal"}`}>
                     {row.name}
                   </h3>
+                  {isLeader && (
+                    <span className="material-symbols-outlined text-primary text-xl">trending_up</span>
+                  )}
                 </div>
                 <div className="col-span-2 text-right flex flex-col items-end">
-                  <span className="text-lg font-headline font-bold text-charcoal">{row.vote_count}</span>
+                  <span className={`font-headline font-bold text-charcoal ${isLeader ? "text-xl" : "text-lg"}`}>{row.vote_count}</span>
                   <span className="block text-[10px] uppercase text-slate font-bold tracking-tighter">Votes</span>
                 </div>
                 <div className="col-span-2 text-right">
-                  <span className="font-mono text-primary font-medium">avg {Number(row.avg_rank).toFixed(2)}</span>
+                  <span className={`font-mono text-primary font-medium ${isLeader ? "text-base" : ""}`}>avg {Number(row.avg_rank).toFixed(2)}</span>
                 </div>
               </div>
             </div>
@@ -139,7 +165,7 @@ export default function ResultsList({
           <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 to-transparent flex items-center justify-center p-6 md:p-8">
             <div className="text-center z-10">
               <span className="material-symbols-outlined text-3xl md:text-4xl text-primary mb-2">analytics</span>
-              <p className="text-charcoal font-headline italic font-semibold text-base md:text-lg">&ldquo;A predictive tool for the modern scholar.&rdquo;</p>
+              <p className="text-charcoal font-headline italic font-semibold text-base md:text-lg">&ldquo;The ultimate polling tool.&rdquo;</p>
             </div>
           </div>
         </div>
