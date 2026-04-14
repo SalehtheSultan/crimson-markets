@@ -11,25 +11,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Too many requests. Try again later." }, { status: 429 });
   }
 
-  // Verify the Supabase auth session token
-  const authHeader = req.headers.get("authorization");
-  const token = authHeader?.replace("Bearer ", "");
-  if (!token) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-  }
-
-  const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
-  if (authError || !user?.email) {
-    return NextResponse.json({ error: "Invalid or expired session" }, { status: 401 });
-  }
-
-  const email = user.email.toLowerCase().trim();
-
-  // Validate email domain
-  if (!email.endsWith(`@${config.allowedEmailDomain}`)) {
-    return NextResponse.json({ error: `Must use a @${config.allowedEmailDomain} email` }, { status: 403 });
-  }
-
   let body: unknown;
   try {
     body = await req.json();
@@ -37,7 +18,40 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  const { rankings } = body as { rankings: { ticketId: number; rank: number }[] };
+  const { email: rawEmail, code, rankings } = body as {
+    email: string;
+    code: string;
+    rankings: { ticketId: number; rank: number }[];
+  };
+
+  // Validate email
+  if (!rawEmail || typeof rawEmail !== "string") {
+    return NextResponse.json({ error: "Email is required" }, { status: 400 });
+  }
+  const email = rawEmail.toLowerCase().trim();
+  if (!email.endsWith(`@${config.allowedEmailDomain}`)) {
+    return NextResponse.json({ error: `Must use a @${config.allowedEmailDomain} email` }, { status: 403 });
+  }
+
+  // Validate code format
+  if (!code || typeof code !== "string" || !/^\d{6}$/.test(code.trim())) {
+    return NextResponse.json({ error: "Invalid verification code" }, { status: 400 });
+  }
+
+  // Verify the code against the database
+  const { data: codeRow } = await supabaseAdmin
+    .from("verification_codes")
+    .select("code, expires_at")
+    .eq("email", email)
+    .single();
+
+  if (!codeRow || codeRow.code !== code.trim()) {
+    return NextResponse.json({ error: "Invalid verification code" }, { status: 401 });
+  }
+
+  if (new Date(codeRow.expires_at) < new Date()) {
+    return NextResponse.json({ error: "Code has expired. Please request a new one." }, { status: 401 });
+  }
 
   // Validate rankings array
   if (!Array.isArray(rankings) || rankings.length !== config.ticketCount) {
@@ -80,6 +94,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "You have already submitted a ranking" }, { status: 409 });
   }
 
+  // Insert rankings
   const rows = rankings.map((r) => ({
     email,
     ticket_id: r.ticketId,
@@ -90,6 +105,9 @@ export async function POST(req: NextRequest) {
     console.error("Rankings insert error:", error.message);
     return NextResponse.json({ error: "Failed to save ranking. Please try again." }, { status: 500 });
   }
+
+  // Clean up verification code
+  await supabaseAdmin.from("verification_codes").delete().eq("email", email);
 
   return NextResponse.json({ ok: true });
 }

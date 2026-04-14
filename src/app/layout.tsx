@@ -2,9 +2,12 @@ import "./globals.css";
 import Link from "next/link";
 import TopNav from "@/components/TopNav";
 
-export const metadata = {
-  title: "Crimson Markets",
-  viewport: "width=device-width, initial-scale=1, maximum-scale=1",
+export const metadata = { title: "Crimson Markets" };
+
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
