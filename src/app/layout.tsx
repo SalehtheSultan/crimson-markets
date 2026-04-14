@@ -2,7 +2,10 @@ import "./globals.css";
 import Link from "next/link";
 import TopNav from "@/components/TopNav";
 
-export const metadata = { title: "Crimson Markets" };
+export const metadata = {
+  title: "Crimson Markets",
+  icons: { icon: "/favicon.svg" },
+};
 
 export const viewport = {
   width: "device-width",
